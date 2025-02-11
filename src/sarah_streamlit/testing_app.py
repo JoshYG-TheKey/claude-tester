@@ -1,7 +1,6 @@
 """
 Testing application for evaluating AI responses.
 """
-import sqlite3
 import streamlit as st
 from datetime import datetime
 import json
@@ -9,50 +8,30 @@ from typing import List, Dict, Any
 import os
 
 from sarah_streamlit.chat import get_llm_client, Message, TextContent, ImageContent
-from sarah_streamlit.cloud_storage import download_db_from_storage, upload_db_to_storage
 from sarah_streamlit.db import (
     Question,
     Prompt,
-    Run,
     TestRun,
     RunResult,
     add_question,
-    add_rating,
     add_prompt,
-    add_run,
     get_questions,
-    get_ratings,
     get_prompts,
     get_prompt,
-    get_runs,
     get_test_runs,
     create_test_run,
     add_run_result,
     get_run_results,
     init_db,
-    get_db_connection,
     get_question,
     add_source,
-    get_sources,
     get_sources_for_question,
-    update_run_rating,
-    update_run_result,
-    add_run_comparison,
-    get_run_comparisons,
     delete_question,
     delete_prompt,
 )
 
-# Cloud Storage configuration
-BUCKET_NAME = os.getenv('BUCKET_NAME', 'sarah-testing-db')
-DB_NAME = "sarah_testing.db"
-
 def setup_initial_data():
     """Set up initial data in the database."""
-    # Download existing database from Cloud Storage if available
-    if os.getenv('CLOUD_RUN_SERVICE', ''):  # Only in Cloud Run
-        download_db_from_storage(BUCKET_NAME, DB_NAME)
-    
     # Initialize the database
     init_db()
     
@@ -134,11 +113,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-def sync_db_to_storage():
-    """Sync the database to Cloud Storage if running in Cloud Run."""
-    if os.getenv('CLOUD_RUN_SERVICE', ''):
-        upload_db_to_storage(BUCKET_NAME, DB_NAME)
 
 def add_question_section():
     """Section for adding new questions."""
@@ -255,9 +229,6 @@ def add_question_section():
                 content=question_text,
                 sources=sources
             )
-            
-            # Sync to Cloud Storage
-            sync_db_to_storage()
             
             # Reset form state
             st.session_state.source_page_counts = {i: 1 for i in range(10)}

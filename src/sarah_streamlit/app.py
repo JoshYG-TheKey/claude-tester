@@ -2,7 +2,7 @@
 Sarah Streamlit Chat Application with Claude integration.
 """
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import streamlit as st
 
@@ -302,7 +302,7 @@ def handle_streaming_response(response_stream, has_sources: bool) -> str:
 
 def main() -> None:
     """Main application entry point."""
-    st.title("Sarah Chat 🤖")
+    st.title("Claude Prompt Testing 🤖")
     
     # Initialize session state
     initialize_session_state()
