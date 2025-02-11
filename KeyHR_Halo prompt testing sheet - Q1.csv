@@ -1,0 +1,12 @@
+,Question bank here: https://docs.google.com/spreadsheets/d/1d15ngMEYr2xD37xPwxj92yOWXXG3pu4ZW4ce_EnXKVc/edit?gid=0#gid=0 ,,,,,,,,,,,,,,,,,
+Question ID,Question text,Question Type,Articles I would expect referenced in the response,Article sections I would expect referenced in the response,Response we had sent in the past/what to expect in the response,Prompt Version,Thresholds- not available to start with ,Control variable we're testing,AI Response 1,AI Response 2,AI Response 3,Accuracy,Source attribution,Hallucination Rate %,Relevance,Helpfulness,Escalation rate for high-risk queries- Did the AI correctly escalate the query to a human agent?,Notes- is the output better?
+Q1,"Should schools retain self-declaration forms for employees? KCSIE 238 states that criminal information declarations should not be kept for more than 6 months, is this only where the employee has declared criminal information? If schools do not retain self-declaration forms (where there is no declaration), should they record that this was checked?",Known answer/source verification,Self-declaration form: template and guidance https://schoolleaders.thekeysupport.com/pupils-and-parents/safeguarding/safeguarding-checks-and-the-scr/self-declaration-form-template-and-guidance/ and KCSIE,article section 'Comply with data protection' and KCSIE para 283,"https://app.asana.com/0/1201468387905396/1209107881982037 Paragraph 283 in KCSIE states that you must have a valid reason for retaining declaration forms - if employees haven't declared any criminal information, then there is no reason to retain the form. In this instance it would be sufficient to record that checks have been carried out, the result, and the recruitment decision.
+
+We've updated our article on self-declaration forms to make this clearer: https://schoolleaders.thekeysupport.com/uid/994e65e4-499f-44a2-b18d-26b2fed405a3/",,,,,,,,,,4,4,,
+Q1,,,,,,,,,,,,,,,5,5,,
+Q1,,,,,,,,,,,,,,,4,4,,
+Q1,,,,,,,,,,,,,,,5,5,,
+Q1,,,,,,,,,,,,,,,4,4,,
+,,,,,,,,,,,,,,,3,3,,
+,,,,,,,,,,,,,,,5,5,,
+,,,,,,,,,,,,,,,4,4,,
