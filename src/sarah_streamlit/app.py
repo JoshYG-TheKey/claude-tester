@@ -24,6 +24,9 @@ st.set_page_config(
 
 # Available Claude models and their regions
 CLAUDE_MODELS = {
+    "Claude 3.7 Sonnet": {
+        "id": "claude-3-7-sonnet-20250219",
+    },
     "Claude 3.5 Sonnet": {
         "id": "claude-3-5-sonnet-20241022",
         "regions": ["us-east5", "europe-west1"],

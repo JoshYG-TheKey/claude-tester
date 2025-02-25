@@ -283,12 +283,12 @@ def add_run_result(
     return response.data[0]['id']
 
 def get_test_runs() -> list[TestRun]:
-    """Get all test runs from the database.
+    """Get all test runs from the database, sorted from latest to oldest.
     
     Returns:
         List of TestRun objects
     """
-    response = supabase.table('test_runs').select('*').execute()
+    response = supabase.table('test_runs').select('*').order('created_at', desc=True).execute()
     
     return [
         TestRun(
@@ -341,4 +341,74 @@ def delete_prompt(prompt_id: int) -> None:
     Args:
         prompt_id: ID of the prompt to delete
     """
-    supabase.table('prompts').delete().eq('id', prompt_id).execute() 
+    supabase.table('prompts').delete().eq('id', prompt_id).execute()
+
+def get_run_data_batch(run_id: int) -> dict:
+    """Get all data related to a test run in a single batch.
+    
+    This function reduces the number of database queries by fetching
+    the prompt, results, and related questions in a more efficient way.
+    
+    Args:
+        run_id: ID of the test run
+        
+    Returns:
+        Dictionary containing the prompt, results, and questions
+    """
+    # Get the run to get the prompt_id
+    run_response = supabase.table('test_runs').select('*').eq('id', run_id).single().execute()
+    if not run_response.data:
+        return {"prompt": None, "results": [], "questions": {}}
+    
+    run = run_response.data
+    prompt_id = run['prompt_id']
+    
+    # Get the prompt
+    prompt_response = supabase.table('prompts').select('*').eq('id', prompt_id).single().execute()
+    prompt = None
+    if prompt_response.data:
+        row = prompt_response.data
+        prompt = Prompt(
+            id=row['id'],
+            name=row['name'],
+            content=row['content'],
+            version=row['version'],
+            created_at=row['created_at']
+        )
+    
+    # Get all results for this run
+    results_response = supabase.table('run_results').select('*').eq('run_id', run_id).execute()
+    results = [
+        RunResult(
+            id=row['id'],
+            run_id=row['run_id'],
+            question_id=row['question_id'],
+            response=row['response'],
+            created_at=row['created_at']
+        )
+        for row in results_response.data
+    ]
+    
+    # Extract unique question IDs
+    question_ids = list(set(result.question_id for result in results))
+    
+    # Get all questions in a single query if there are any
+    questions = {}
+    if question_ids:
+        # Use 'in' filter to get all questions at once
+        questions_response = supabase.table('questions').select('*').in_('id', question_ids).execute()
+        questions = {
+            row['id']: Question(
+                id=row['id'],
+                name=row['name'],
+                content=row['content'],
+                created_at=row['created_at']
+            )
+            for row in questions_response.data
+        }
+    
+    return {
+        "prompt": prompt,
+        "results": results,
+        "questions": questions
+    } 

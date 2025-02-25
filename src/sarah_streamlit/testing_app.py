@@ -28,6 +28,7 @@ from sarah_streamlit.db import (
     get_sources_for_question,
     delete_question,
     delete_prompt,
+    get_run_data_batch,
 )
 
 def setup_initial_data():
@@ -681,8 +682,13 @@ def test_history_section():
 
     for run in runs:
         with st.expander(f"Run: {run.name} - {run.created_at}"):
+            # Get all run data in a single batch
+            run_data = get_run_data_batch(run.id)
+            prompt = run_data["prompt"]
+            results = run_data["results"]
+            questions_dict = run_data["questions"]
+            
             # Display prompt information
-            prompt = get_prompt(run.prompt_id)
             if prompt:
                 st.markdown(f"**Using Prompt:** {prompt.name} (v{prompt.version})")
                 prompt_container = st.container()
@@ -698,13 +704,16 @@ def test_history_section():
             if run.description:
                 st.write(f"Description: {run.description}")
 
-            results = get_run_results(run.id)
             if not results:
                 st.write("No results available")
                 continue
 
             for result in results:
-                question = get_question(result.question_id)
+                question = questions_dict.get(result.question_id)
+                if not question:
+                    st.warning(f"⚠️ Question (ID: {result.question_id}) no longer exists in the database")
+                    continue
+                    
                 st.markdown("---")  # Visual separator
                 st.markdown(f"**Question:** {question.content}")
                 display_result(result, st)
@@ -726,13 +735,14 @@ def export_test_run_to_csv(run_id: int) -> str:
     if not run:
         raise ValueError(f"Test run {run_id} not found")
     
-    # Get prompt details
-    prompt = get_prompt(run.prompt_id)
-    if not prompt:
-        raise ValueError(f"Prompt {run.prompt_id} not found")
+    # Get all run data in a single batch
+    run_data = get_run_data_batch(run_id)
+    prompt = run_data["prompt"]
+    results = run_data["results"]
+    questions_dict = run_data["questions"]
     
-    # Get results
-    results = get_run_results(run_id)
+    if not prompt:
+        raise ValueError(f"Prompt for run {run_id} not found")
     
     # Create CSV in memory
     output = io.StringIO()
@@ -753,7 +763,7 @@ def export_test_run_to_csv(run_id: int) -> str:
     
     # Write data
     for result in results:
-        question = get_question(result.question_id)
+        question = questions_dict.get(result.question_id)
         if not question:
             continue
             
@@ -775,94 +785,101 @@ def view_runs_section():
     """Section for viewing and rating questions."""
     st.header("View Test Runs")
     
+    # Get all test runs (already sorted by created_at desc)
     runs = get_test_runs()
     if not runs:
         st.write("No test runs available")
         return
 
-    for run in runs:
-        with st.expander(f"Run: {run.name} - {run.created_at}"):
-            # Add export button at the top
-            if st.button("📥 Export as CSV", key=f"export_run_{run.id}"):
-                try:
-                    csv_data = export_test_run_to_csv(run.id)
-                    st.download_button(
-                        label="Download CSV",
-                        data=csv_data,
-                        file_name=f"test_run_{run.name}_{run.created_at}.csv",
-                        mime="text/csv",
-                        key=f"download_run_{run.id}"
+    # Use a progress indicator while loading data
+    with st.spinner("Loading test runs..."):
+        for run in runs:
+            with st.expander(f"Run: {run.name} - {run.created_at}"):
+                # Add export button at the top
+                if st.button("📥 Export as CSV", key=f"export_run_{run.id}"):
+                    try:
+                        csv_data = export_test_run_to_csv(run.id)
+                        st.download_button(
+                            label="Download CSV",
+                            data=csv_data,
+                            file_name=f"test_run_{run.name}_{run.created_at}.csv",
+                            mime="text/csv",
+                            key=f"download_run_{run.id}"
+                        )
+                    except Exception as e:
+                        st.error(f"Error exporting test run: {str(e)}")
+                
+                # Get all run data in a single batch
+                run_data = get_run_data_batch(run.id)
+                prompt = run_data["prompt"]
+                results = run_data["results"]
+                questions_dict = run_data["questions"]
+                
+                # Display prompt information
+                if prompt:
+                    st.markdown(f"**Using Prompt:** {prompt.name} (v{prompt.version})")
+                    prompt_container = st.container()
+                    prompt_container.markdown("**Prompt Content:**")
+                    prompt_container.text_area(
+                        "Content",
+                        value=prompt.content,
+                        height=200,
+                        disabled=True,
+                        key=f"prompt_view_{run.id}"
                     )
-                except Exception as e:
-                    st.error(f"Error exporting test run: {str(e)}")
-            
-            # Display prompt information
-            prompt = get_prompt(run.prompt_id)
-            if prompt:
-                st.markdown(f"**Using Prompt:** {prompt.name} (v{prompt.version})")
-                prompt_container = st.container()
-                prompt_container.markdown("**Prompt Content:**")
-                prompt_container.text_area(
-                    "Content",
-                    value=prompt.content,
-                    height=200,
-                    disabled=True,
-                    key=f"prompt_view_{run.id}"
-                )
-            else:
-                st.warning("⚠️ The prompt used in this run no longer exists.")
-            
-            if run.description:
-                st.write(f"Description: {run.description}")
-
-            results = get_run_results(run.id)
-            if not results:
-                st.write("No results available")
-                continue
-
-            # Group results by question
-            questions = {}
-            for result in results:
-                if result.question_id not in questions:
-                    questions[result.question_id] = []
-                questions[result.question_id].append(result)
-
-            # Display results grouped by question
-            for question_id, question_results in questions.items():
-                question = get_question(question_id)
-                st.markdown("---")  # Visual separator
-                
-                if question:
-                    st.markdown(f"**Question:** {question.content}")
                 else:
-                    st.warning(f"⚠️ Question (ID: {question_id}) no longer exists in the database")
+                    st.warning("⚠️ The prompt used in this run no longer exists.")
+                
+                if run.description:
+                    st.write(f"Description: {run.description}")
+
+                if not results:
+                    st.write("No results available")
                     continue
-                
-                # If there are multiple results (parameter range testing)
-                if len(question_results) > 1:
-                    st.markdown("### Parameter Configurations")
-                    tabs = st.tabs([f"Config {i+1}" for i in range(len(question_results))])
-                    for i, (tab, result) in enumerate(zip(tabs, question_results)):
-                        with tab:
-                            # Extract parameters from run description
-                            params = {}
-                            if result.run_id == run.id and run.description:
-                                param_line = [line for line in run.description.split('\n') if 'Parameters:' in line]
-                                if param_line:
-                                    params_str = param_line[0].split('Parameters:')[1].strip()
-                                    params = dict(param.split('=') for param in params_str.split(', '))
-                            
-                            # Display parameters if available
-                            if params:
-                                st.markdown("**Parameters:**")
-                                for param, value in params.items():
-                                    st.write(f"- {param.strip()}: {value.strip()}")
-                            
-                            # Display the response
-                            display_result(result, st)
-                else:
-                    # Single result display
-                    display_result(question_results[0], st)
+
+                # Group results by question
+                questions_results = {}
+                for result in results:
+                    if result.question_id not in questions_results:
+                        questions_results[result.question_id] = []
+                    questions_results[result.question_id].append(result)
+
+                # Display results grouped by question
+                for question_id, question_results in questions_results.items():
+                    question = questions_dict.get(question_id)
+                    st.markdown("---")  # Visual separator
+                    
+                    if question:
+                        st.markdown(f"**Question:** {question.content}")
+                    else:
+                        st.warning(f"⚠️ Question (ID: {question_id}) no longer exists in the database")
+                        continue
+                    
+                    # If there are multiple results (parameter range testing)
+                    if len(question_results) > 1:
+                        st.markdown("### Parameter Configurations")
+                        tabs = st.tabs([f"Config {i+1}" for i in range(len(question_results))])
+                        for i, (tab, result) in enumerate(zip(tabs, question_results)):
+                            with tab:
+                                # Extract parameters from run description
+                                params = {}
+                                if result.run_id == run.id and run.description:
+                                    param_line = [line for line in run.description.split('\n') if 'Parameters:' in line]
+                                    if param_line:
+                                        params_str = param_line[0].split('Parameters:')[1].strip()
+                                        params = dict(param.split('=') for param in params_str.split(', '))
+                                
+                                # Display parameters if available
+                                if params:
+                                    st.markdown("**Parameters:**")
+                                    for param, value in params.items():
+                                        st.write(f"- {param.strip()}: {value.strip()}")
+                                
+                                # Display the response
+                                display_result(result, st)
+                    else:
+                        # Single result display
+                        display_result(question_results[0], st)
 
 def compare_runs_section():
     st.header("Compare Test Runs")
@@ -882,7 +899,9 @@ def compare_runs_section():
             key="run1"
         )
         if run1:
-            prompt1 = get_prompt(run1.prompt_id)
+            # Get run data in batch
+            run1_data = get_run_data_batch(run1.id)
+            prompt1 = run1_data["prompt"]
             if prompt1:
                 st.markdown(f"**Using Prompt:** {prompt1.name} (v{prompt1.version})")
                 prompt_container = st.container()
@@ -905,7 +924,9 @@ def compare_runs_section():
             key="run2"
         )
         if run2:
-            prompt2 = get_prompt(run2.prompt_id)
+            # Get run data in batch
+            run2_data = get_run_data_batch(run2.id)
+            prompt2 = run2_data["prompt"]
             if prompt2:
                 st.markdown(f"**Using Prompt:** {prompt2.name} (v{prompt2.version})")
                 prompt_container = st.container()
@@ -919,23 +940,30 @@ def compare_runs_section():
                 )
 
     if run1 and run2:
-        results1 = get_run_results(run1.id)
-        results2 = get_run_results(run2.id)
+        # Get both run data in batches
+        run1_data = get_run_data_batch(run1.id)
+        run2_data = get_run_data_batch(run2.id)
+        
+        results1 = run1_data["results"]
+        results2 = run2_data["results"]
+        
+        # Combine question dictionaries
+        questions_dict = {**run1_data["questions"], **run2_data["questions"]}
 
         if not results1 or not results2:
             st.write("One or both runs have no results")
             return
 
         # Group results by question for comparison
-        questions = {}
+        questions_results = {}
         for result in results1:
-            questions[result.question_id] = {"run1": result}
+            questions_results[result.question_id] = {"run1": result}
         for result in results2:
-            if result.question_id in questions:
-                questions[result.question_id]["run2"] = result
+            if result.question_id in questions_results:
+                questions_results[result.question_id]["run2"] = result
 
-        for question_id, results in questions.items():
-            question = get_question(question_id)
+        for question_id, results in questions_results.items():
+            question = questions_dict.get(question_id)
             if not question:
                 st.warning(f"Could not find question with ID {question_id}")
                 continue
