@@ -437,8 +437,8 @@ def start_test_section():
         st.subheader("Model Configuration")
         model_name = st.selectbox(
             "Select Model",
-            options=["Claude 3.5 Sonnet", "Claude 3.5 Haiku"],
-            help="Choose between Claude 3.5 Sonnet (most intelligent) or Haiku (fastest)"
+            options=["Claude 3.5 Sonnet", "Claude 3.5 Haiku", "Claude 3.7 Sonnet"],
+            help="Choose between Claude 3.5 Sonnet, Claude 3.5 Haiku (fastest), or Claude 3.7 Sonnet (most capable)"
         )
         
         # Parameter testing configuration

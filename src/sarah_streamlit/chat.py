@@ -418,6 +418,10 @@ def get_llm_client(
         "Claude 3.5 Haiku": {
             "id": "claude-3-haiku-20240307", 
             "max_tokens": 8192
+        },
+        "Claude 3.7 Sonnet": {
+            "id": "claude-3-7-sonnet-20250219",
+            "max_tokens": 8192
         }
     }
     

@@ -26,6 +26,8 @@ st.set_page_config(
 CLAUDE_MODELS = {
     "Claude 3.7 Sonnet": {
         "id": "claude-3-7-sonnet-20250219",
+        "max_tokens": 8192,
+
     },
     "Claude 3.5 Sonnet": {
         "id": "claude-3-5-sonnet-20241022",
