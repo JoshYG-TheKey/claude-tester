@@ -177,7 +177,8 @@ def add_prompt(name: str, content: str) -> int:
         ID of the newly created prompt
     """
     # Get the latest version for this prompt name
-    response = supabase.table('prompts').select('version').eq('name', name).order('version.desc').limit(1).execute()
+    response = supabase.table('prompts').select('version').eq('name', name).order('version', desc=True).limit(
+        1).execute()
     latest_version = response.data[0]['version'] if response.data else 0
     
     data = {
